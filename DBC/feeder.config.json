@@ -1,0 +1,53 @@
+{
+  "Adapter": "IxxatVci",
+  "DeviceKey": "",
+  "BitRate": "Br500kBit",
+  "DbcPath": "D:\\Projects\\Dyno\\DynoDynamicsCanFeeder\\DBC\\AEM_X-Series.dbc",
+  "ServerAddress": "",
+  "Routes": [
+    {
+      "Signal": "Free_Air_Cal_In_Use",
+      "ChannelNo": 10,
+      "Scale": 0.001,
+      "Offset": 0,
+      "IsTacho": false
+    },
+    {
+      "Signal": "Lambda",
+      "ChannelNo": 10,
+      "Scale": 0.001,
+      "Offset": 0,
+      "IsTacho": false
+    },
+    {
+      "Signal": "Oxygen",
+      "ChannelNo": 10,
+      "Scale": 0.001,
+      "Offset": 0,
+      "IsTacho": false
+    },
+    {
+      "Signal": "Lambda_Data_Valid",
+      "ChannelNo": 10,
+      "Scale": 0.001,
+      "Offset": 0,
+      "IsTacho": false
+    },
+    {
+      "Signal": "Sensor_Fault",
+      "ChannelNo": 10,
+      "Scale": 0.001,
+      "Offset": 0,
+      "IsTacho": false
+    },
+    {
+      "Signal": "System_Volts",
+      "ChannelNo": 10,
+      "Scale": 0.001,
+      "Offset": 0,
+      "IsTacho": false
+    }
+  ],
+  "AdapterKind": 0,
+  "BitRateValue": 6
+}

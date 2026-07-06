@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Targets .NET Framework 4.8 (x64) on purpose: the dyno producer library DynoDotNet.dll
+    (and Lib_ECU.dll) are .NET Framework 2.0 assemblies, which load cleanly on the 4.x CLR
+    but are NOT loadable from .NET 8. IXXAT VCI native driver is 64-bit -> pin x64.
+  -->
+  <PropertyGroup>
+    <!-- WinExe: WinForms GUI is the primary UI. Headless CLI still available via the headless flag. -->
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>DynoDynamicsCanFeeder</RootNamespace>
+    <AssemblyName>DynoDynamicsCanFeeder</AssemblyName>
+    <Product>Dyno Dynamics CAN Feeder</Product>
+    <AssemblyTitle>Dyno Dynamics CAN Feeder</AssemblyTitle>
+    <Company>Dyno Dynamics</Company>
+    <!-- The reused UltimateCANScanner sources keep their IxxatCanTool.* namespaces. -->
+  </PropertyGroup>
+
+  <!-- WinForms on .NET Framework: reference the classic assemblies (UseWindowsForms is a Core-era prop). -->
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+
+  <!-- tools/DbcVerify is a separate helper project; keep its sources out of the feeder build. -->
+  <ItemGroup>
+    <Compile Remove="tools/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Ixxat.Vci4" Version="4.1.4" />
+    <PackageReference Include="DbcParserLib" Version="1.8.0" />
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <!-- Edit the DigitalDyno ECU database (dyno-e.db) in-app. net48-friendly ADO.NET provider
+         that bundles the native x64 SQLite interop. -->
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.118" />
+    <!-- Generates net48-missing compiler types (IsExternalInit, System.Index, System.Range)
+         needed by the reused net8 UltimateCANScanner sources (init/record, ranges). -->
+    <PackageReference Include="PolySharp" Version="1.14.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- Dyno producer + packet types, reused directly (no reimplementation of the wire protocol). -->
+  <ItemGroup>
+    <Reference Include="DynoDotNet">
+      <HintPath>libs\DynoDotNet.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Lib_ECU">
+      <HintPath>libs\Lib_ECU.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Lib_ECU has a lazy dependency on Lib_CAN; ship it next to the exe so the CLR can resolve it. -->
+  <ItemGroup>
+    <None Include="libs\Lib_CAN.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="feeder.config.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

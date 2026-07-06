@@ -1,0 +1,54 @@
+VERSION ""
+
+NS_ :
+    NS_DESC_
+    CM_
+    BA_DEF_
+    BA_
+    VAL_
+    CAT_DEF_
+    CAT_
+    FILTER
+    BA_DEF_DEF_
+    EV_DATA_
+    ENVVAR_DATA_
+    SGTYPE_
+    SGTYPE_VAL_
+    BA_DEF_SGTYPE_
+    BA_SGTYPE_
+    SIG_TYPE_REF_
+    VAL_TABLE_
+    SIG_GROUP_
+    SIG_VALTYPE_
+    SIGTYPE_VALTYPE_
+    BO_TX_BU_
+    BA_DEF_REL_
+    BA_REL_
+    BA_DEF_DEF_REL_
+    BU_SG_REL_
+    BU_EV_REL_
+    BU_BO_REL_
+    SG_MUL_VAL_
+
+BS_:
+
+BU_: ECU Vector__XXX
+
+BO_ 864 Haltech_360: 8 ECU
+ SG_ Engine_RPM : 7|16@0+ (1,0) [0|16383] "rpm" Vector__XXX
+ SG_ MAP : 23|16@0+ (0.1,0) [0|6553.5] "kPa" Vector__XXX
+ SG_ TPS : 39|16@0+ (0.1,0) [0|100] "%" Vector__XXX
+
+BO_ 872 Haltech_368: 8 ECU
+ SG_ Wideband_Sensor_1 : 7|16@0+ (0.001,0) [0|65.535] "lambda" Vector__XXX
+ SG_ Wideband_Sensor_2 : 23|16@0+ (0.001,0) [0|65.535] "lambda" Vector__XXX
+ SG_ Wideband_Sensor_3 : 39|16@0+ (0.001,0) [0|65.535] "lambda" Vector__XXX
+ SG_ Wideband_Sensor_4 : 55|16@0+ (0.001,0) [0|65.535] "lambda" Vector__XXX
+
+BO_ 1136 Haltech_470: 8 ECU
+ SG_ Wideband_Overall : 7|16@0+ (0.001,0) [0|65.535] "lambda" Vector__XXX
+ SG_ Wideband_Bank_1 : 23|16@0+ (0.001,0) [0|65.535] "lambda" Vector__XXX
+ SG_ Wideband_Bank_2 : 39|16@0+ (0.001,0) [0|65.535] "lambda" Vector__XXX
+
+CM_ BO_ 864 "Haltech dash broadcast 0x360. 11-bit standard, big-endian, typically 1 Mbit/s. Start bits corrected to the DbcParserLib Motorola MSB convention (byteN -> N*8+7); the vendor Haltech_dash.dbc uses start=N*8 and decodes wrong here.";
+CM_ SG_ 1136 Wideband_Overall "Overall wideband lambda. AFR (gasoline) = Lambda * 14.7.";

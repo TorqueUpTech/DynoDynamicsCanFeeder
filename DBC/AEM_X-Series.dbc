@@ -1,0 +1,51 @@
+VERSION ""
+
+NS_ :
+    NS_DESC_
+    CM_
+    BA_DEF_
+    BA_
+    VAL_
+    CAT_DEF_
+    CAT_
+    FILTER
+    BA_DEF_DEF_
+    EV_DATA_
+    ENVVAR_DATA_
+    SGTYPE_
+    SGTYPE_VAL_
+    BA_DEF_SGTYPE_
+    BA_SGTYPE_
+    SIG_TYPE_REF_
+    VAL_TABLE_
+    SIG_GROUP_
+    SIG_VALTYPE_
+    SIGTYPE_VALTYPE_
+    BO_TX_BU_
+    BA_DEF_REL_
+    BA_REL_
+    BA_DEF_DEF_REL_
+    BU_SG_REL_
+    BU_EV_REL_
+    BU_BO_REL_
+    SG_MUL_VAL_
+
+BS_:
+
+BU_: AEM Vector__XXX
+
+BO_ 2147484032 AEM_XSeries_Gauge1: 8 AEM
+ SG_ Lambda : 7|16@0+ (0.0001,0) [0|6.5535] "lambda" Vector__XXX
+ SG_ Oxygen : 23|16@0- (0.001,0) [-32.768|32.767] "%" Vector__XXX
+ SG_ System_Volts : 39|8@0+ (0.1,0) [0|25.5] "V" Vector__XXX
+ SG_ Bosch_LSU49_Detected : 49|1@0+ (1,0) [0|1] "" Vector__XXX
+ SG_ Free_Air_Cal_In_Use : 53|1@0+ (1,0) [0|1] "" Vector__XXX
+ SG_ Lambda_Data_Valid : 55|1@0+ (1,0) [0|1] "" Vector__XXX
+ SG_ Sensor_Fault : 62|1@0+ (1,0) [0|1] "" Vector__XXX
+
+CM_ BO_ 2147484032 "AEM X-Series UEGO gauge AEMnet broadcast (gauge ID1 = 0x180, up to 0x18F). 500 kbit/s, 29-bit extended, big-endian (Motorola), 100 Hz, DLC 8. Decoded from 30-0300 X-Series manual.";
+CM_ SG_ 2147484032 Lambda "Wideband lambda. AFR (gasoline) = Lambda * 14.65.";
+CM_ SG_ 2147484032 Lambda_Data_Valid "1 = lambda reading valid; gate the value on this.";
+CM_ SG_ 2147484032 Sensor_Fault "1 = UEGO sensor fault.";
+VAL_ 2147484032 Lambda_Data_Valid 0 "Invalid" 1 "Valid" ;
+VAL_ 2147484032 Sensor_Fault 0 "Ok" 1 "Fault" ;

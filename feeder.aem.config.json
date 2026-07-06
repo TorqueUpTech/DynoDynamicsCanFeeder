@@ -1,0 +1,13 @@
+{
+  // AEM X-Series UEGO gauge (lambda only) on AEMnet @ 500 kbit/s, 29-bit, ID 0x180.
+  // Verified against AEM_X-Series.dbc. AEM gauges carry no RPM; pair with a separate
+  // RPM source (Haltech/GM ECM) on the same bus by merging DBCs, or a 2nd feeder instance.
+  "Adapter": "IxxatVci",
+  "DeviceKey": "",
+  "BitRate": "Br500kBit",
+  "DbcPath": "DBC\\AEM_X-Series.dbc",
+  "ServerAddress": "",
+  "Routes": [
+    { "Signal": "Lambda", "ChannelNo": 10, "Scale": 0.001, "Offset": 0.0 }
+  ]
+}

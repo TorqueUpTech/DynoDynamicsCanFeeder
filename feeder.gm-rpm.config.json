@@ -1,0 +1,13 @@
+{
+  // GM engine RPM over the 500 kbit/s GM HS bus (PPEI). EngSpd is in message 0x0C9
+  // (BO_ 201), 11-bit standard, big-endian, scale 0.25 rpm/bit. Uses the vendor ECM_HS.dbc
+  // as-is (it already uses the correct MSB start-bit convention).
+  "Adapter": "IxxatVci",
+  "DeviceKey": "",
+  "BitRate": "Br500kBit",
+  "DbcPath": "DBC\\ECM_HS.dbc",
+  "ServerAddress": "",
+  "Routes": [
+    { "Signal": "EngSpd", "ChannelNo": 1, "Scale": 1.0, "Offset": 0.0, "IsTacho": true }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  // Example: Haltech WB2 / dash broadcast on a 1 Mbit bus via an IXXAT adapter.
+  // Pulls engine RPM + overall wideband lambda into DigitalDyno.
+  "Adapter": "IxxatVci",          // "IxxatVci" or "Obdx"
+  "DeviceKey": "",                // empty = first device found
+  "BitRate": "Br1000kBit",        // Br1000kBit | Br500kBit | Br250kBit (ECOtrons default)
+  "DbcPath": "DBC\\Haltech_WB2.dbc",   // verified DBC (the vendor Haltech_dash.dbc mis-decodes here)
+  "ServerAddress": "",            // empty = LAN broadcast discovery
+
+  // Each route sends a decoded DBC signal to a DigitalDyno ECU channel. The dyno multiplies
+  // our raw u16 by Scale (+Offset) from its sys_ecuchanneldef row, so keep Scale/Offset in
+  // sync with the DB rows added by feeder-ecu.sql. RPM route should match sys_ecu.TachoChannel.
+  "Routes": [
+    { "Signal": "Engine_RPM",       "ChannelNo": 1,  "Scale": 1.0,   "Offset": 0.0, "IsTacho": true },
+    { "Signal": "Wideband_Overall", "ChannelNo": 10, "Scale": 0.001, "Offset": 0.0 }
+  ]
+}

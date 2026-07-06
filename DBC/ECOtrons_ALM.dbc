@@ -1,0 +1,47 @@
+VERSION ""
+
+NS_ :
+    NS_DESC_
+    CM_
+    BA_DEF_
+    BA_
+    VAL_
+    CAT_DEF_
+    CAT_
+    FILTER
+    BA_DEF_DEF_
+    EV_DATA_
+    ENVVAR_DATA_
+    SGTYPE_
+    SGTYPE_VAL_
+    BA_DEF_SGTYPE_
+    BA_SGTYPE_
+    SIG_TYPE_REF_
+    VAL_TABLE_
+    SIG_GROUP_
+    SIG_VALTYPE_
+    SIGTYPE_VALTYPE_
+    BO_TX_BU_
+    BA_DEF_REL_
+    BA_REL_
+    BA_DEF_DEF_REL_
+    BU_SG_REL_
+    BU_EV_REL_
+    BU_BO_REL_
+    SG_MUL_VAL_
+
+BS_:
+
+BU_: ALM Vector__XXX
+
+BO_ 2365521921 ALM_Ch1Frame1: 8 ALM
+ SG_ O2_Percent : 0|16@1+ (0.000514,-12) [-12|21] "%" Vector__XXX
+ SG_ Lambda : 16|16@1+ (0.000244,0) [0.5|16] "lambda" Vector__XXX
+ SG_ Sensor_Temperature : 32|16@1+ (0.023438,-273) [-273|1030] "degC" Vector__XXX
+ SG_ Sensor_Faults : 48|4@1+ (1,0) [0|12] "" Vector__XXX
+ SG_ PWM_Duty_Heater : 52|12@1+ (0.08,0) [0|100] "%" Vector__XXX
+
+CM_ BO_ 2365521921 "ECOtrons ALM Channel1 Frame1 (PGN 65280 / 0xFF00, default ID 0x0CFF0001). 250 kbit/s default, 29-bit extended, little-endian (Intel), 10 ms. Decoded from ALM Communication Protocol - CAN v2.0. Ch2Frame1 = same layout at 0x0CFF0002.";
+CM_ SG_ 2365521921 Lambda "Wideband lambda = u16LE(byte3,byte4)*0.000244. AFR (gasoline) = Lambda * 14.7.";
+CM_ SG_ 2365521921 Sensor_Faults "0 = no fault; 1..12 map to ALM DTC E1..E12 (see PDF).";
+VAL_ 2365521921 Sensor_Faults 0 "None" 1 "E1_InternalComms" 2 "E2_InternalReg" 3 "E3_VM_ShortPwr" 4 "E4_VM_ShortGND" 5 "E5_UN_ShortPwr" 6 "E6_UN_ShortGND" 7 "E7_IA_ShortPwr" 8 "E8_IA_ShortGND" 9 "E9_LowVoltage" 10 "E10_HeaterDamaged" 11 "E11_HeaterShortPwr" 12 "E12_HeaterShortGND" ;

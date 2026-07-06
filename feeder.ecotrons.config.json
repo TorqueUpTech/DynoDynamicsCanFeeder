@@ -1,0 +1,13 @@
+{
+  // ECOtrons ALM (lambda only) @ 250 kbit/s default, 29-bit, ID 0x0CFF0001.
+  // Verified against ECOtrons_ALM.dbc (little-endian). The ALM baud/ID are user-settable
+  // via its command set (see ALM PDF ch.2) if you need 500k/1M to match another device.
+  "Adapter": "IxxatVci",
+  "DeviceKey": "",
+  "BitRate": "Br250kBit",
+  "DbcPath": "DBC\\ECOtrons_ALM.dbc",
+  "ServerAddress": "",
+  "Routes": [
+    { "Signal": "Lambda", "ChannelNo": 10, "Scale": 0.001, "Offset": 0.0 }
+  ]
+}

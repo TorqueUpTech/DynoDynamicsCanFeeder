@@ -1,0 +1,25 @@
+# Build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# NuGet
+packages/
+*.nupkg
+
+# Proprietary Dyno Dynamics assemblies - NOT redistributable.
+# Copy these from your DigitalDyno install (C:\Program Files (x86)\Dyno\DynoClientECU\)
+# into libs\ before building. See libs\README.md.
+libs/*.dll
+
+# Vendor DBC intentionally excluded from this repo (supply your own).
+ECM_HS.dbc
+**/ECM_HS.dbc
+
+# OS / editor cruft
+Thumbs.db
+desktop.ini
+*.bak
+*.bak-*
