@@ -89,10 +89,12 @@ public sealed class Feeder : IDisposable
 
     private CanDeviceInfo ResolveDevice(FeederConfig cfg)
     {
-        // OBDX endpoints (tcp:host:port, serial:COMx, ble:...) are addressable, not enumerable,
-        // so honour an explicit key directly — this is how WiFi on a non-default IP is selected.
-        if (cfg.AdapterKind == CanAdapterKind.Obdx && cfg.DeviceKey.Contains(':'))
-            return new CanDeviceInfo(CanAdapterKind.Obdx, cfg.DeviceKey, "OBDX (configured)", cfg.DeviceKey);
+        // OBDX and GVRET endpoints (tcp:host:port, serial:COMx, ble:...) are addressable, not
+        // enumerable, so honour an explicit transport key directly — this is how a WiFi endpoint on
+        // a non-default IP (or a GVRET board on TCP) is selected.
+        bool addressable = cfg.AdapterKind is CanAdapterKind.Obdx or CanAdapterKind.Gvret;
+        if (addressable && LooksLikeTransportKey(cfg.DeviceKey))
+            return new CanDeviceInfo(cfg.AdapterKind, cfg.DeviceKey, $"{cfg.AdapterKind} (configured)", cfg.DeviceKey);
 
         var devices = AdapterFactory.Enumerate(cfg.AdapterKind);
         if (devices.Count == 0)
@@ -103,6 +105,11 @@ public sealed class Feeder : IDisposable
             if (d.Key == cfg.DeviceKey) return d;
         throw new InvalidOperationException($"Device key '{cfg.DeviceKey}' not present.");
     }
+
+    private static bool LooksLikeTransportKey(string key) =>
+        key.StartsWith("tcp:", StringComparison.OrdinalIgnoreCase) ||
+        key.StartsWith("serial:", StringComparison.OrdinalIgnoreCase) ||
+        key.StartsWith("ble:", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>RX-thread callback: decode the frame and forward routed signals to the dyno.</summary>
     private void OnFrame(CanFrame frame)

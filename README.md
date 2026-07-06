@@ -1,6 +1,7 @@
 # Dyno Dynamics CAN Feeder
 
-Bridges a live CAN bus (**IXXAT** or **OBDX**) into **Dyno Dynamics DigitalDyno**, decoding
+Bridges a live CAN bus (**IXXAT**, **OBDX**, generic **J2534**, **SavvyCAN/GVRET**, or **PEAK
+PCAN-USB**) into **Dyno Dynamics DigitalDyno**, decoding
 user-chosen DBC signals (engine **RPM**, wideband **lambda**, anything in a DBC) and republishing
 them to DynoServer as an "ECU" producer — the same role `DynoClientECU.exe` plays, but sourced
 from any DBC-described device instead of a hard-coded per-brand protocol.
@@ -39,7 +40,11 @@ dotnet build -c Release
 These are the known deltas from the net8 UltimateCANScanner sources; fix if the compiler flags them:
 - **OBDX BLE** removed. `Can/Obdx/BleObdxTransport.cs` here is a throwing net48 stub (BLE needs
   WinRT). Use OBDX over USB (`serial:`) or WiFi (`tcp:`).
-- **J2534** dropped. `AdapterFactory.cs` replaces UCS's `CanAdapters.cs` (IXXAT + OBDX only).
+- `AdapterFactory.cs` replaces UCS's `CanAdapters.cs` and adds the backends the feeder supports:
+  IXXAT (`Can/CanBusService.cs`), OBDX (`Can/Obdx/*`), **J2534** (`Can/J2534/*`, net48 port using
+  kernel32 `LoadLibrary` instead of `NativeLibrary`), **SavvyCAN/GVRET** (`Can/Gvret/*`, serial/TCP),
+  and **PEAK PCAN-USB** (`Can/Peak/*`, via `PCANBasic.dll`). J2534 needs a 64-bit vendor driver;
+  PEAK needs the PEAK-System driver; both resolve their DLLs at runtime (nothing to ship).
 - Watch for net5+ only APIs in the copied files (e.g. `Enum.GetValues<T>()`), range/index on
   arrays, and `record struct` — all OK under `<LangVersion>latest`, but confirm the build is clean.
 - `System.IO.Ports` / `System.Text.Json` come via NuGet (netstandard2.0 assets) for net48.
@@ -47,7 +52,8 @@ These are the known deltas from the net8 UltimateCANScanner sources; fix if the 
 ## Use (GUI)
 
 Just run `DynoDynamicsCanFeeder.exe` — the WinForms GUI exposes every option:
-- **Adapter** (IXXAT / OBDX) and **Device / endpoint** (Refresh enumerates; for OBDX WiFi type
+- **Adapter** (IXXAT / OBDX / J2534 / GVRET / PEAK) and **Device / endpoint** (Refresh enumerates;
+  for OBDX or GVRET over WiFi type
   `tcp:<ip>:<port>` directly).
 - **Bit rate**, **Dyno server** (blank = auto-discover), **DBC file** (Browse).
 - **Signal -> channel routes** grid (add manually, or double-click a name in the **DBC signals**

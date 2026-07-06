@@ -50,7 +50,11 @@ public sealed class MainForm : Form
         BuildUi();
         WireEvents();
 
-        _adapter.Items.AddRange(new object[] { CanAdapterKind.IxxatVci, CanAdapterKind.Obdx });
+        _adapter.Items.AddRange(new object[]
+        {
+            CanAdapterKind.IxxatVci, CanAdapterKind.Obdx, CanAdapterKind.J2534,
+            CanAdapterKind.Gvret, CanAdapterKind.Peak
+        });
         _adapter.SelectedIndex = 0;
         foreach (var br in (CanBitRate[])Enum.GetValues(typeof(CanBitRate))) _bitrate.Items.Add(br);
         _bitrate.SelectedItem = CanBitRate.Br500kBit;
@@ -147,12 +151,16 @@ public sealed class MainForm : Form
         _toolTip.SetToolTip(_adapter,
             "CAN interface hardware to read from:\n" +
             "  IxxatVci - IXXAT USB-to-CAN (VCI4 driver)\n" +
-            "  Obdx - OBDX Pro (USB, WiFi or BLE).");
+            "  Obdx - OBDX Pro (USB, WiFi or BLE)\n" +
+            "  J2534 - any installed SAE J2534 PassThru cable (64-bit driver)\n" +
+            "  Gvret - SavvyCAN-compatible GVRET logger (ESP32RET etc.) over serial or TCP\n" +
+            "  Peak - PEAK PCAN-USB (PCANBasic driver).");
         _toolTip.SetToolTip(_device,
             "The specific adapter / endpoint. Click Refresh to list connected devices.\n" +
-            "For an OBDX over WiFi, type its endpoint directly, e.g. tcp:192.168.4.1:23\n" +
-            "(SoftAP default) or tcp:<lan-ip>:<port> if it joined your workshop network.");
-        _toolTip.SetToolTip(_refresh, "Re-scan for connected IXXAT / OBDX devices.");
+            "OBDX/GVRET over WiFi: type the endpoint directly, e.g. tcp:192.168.4.1:23\n" +
+            "(SoftAP default) or tcp:<lan-ip>:<port>. GVRET serial: pick serial:COMx\n" +
+            "(add :baud to override, e.g. serial:COM5:1000000). J2534: pick the installed driver.");
+        _toolTip.SetToolTip(_refresh, "Re-scan for connected devices (IXXAT / OBDX / J2534 drivers / serial ports).");
         _toolTip.SetToolTip(_bitrate,
             "CAN bus bit rate. Must match the device's bus:\n" +
             "  Haltech dash 1 Mbit  |  AEM X-Series & GM 500 kbit  |  ECOtrons ALM 250 kbit (default).");
@@ -220,6 +228,9 @@ public sealed class MainForm : Form
         catch (Exception ex) { Log("[enumerate] " + ex.Message); }
 
         if (CurrentAdapter == CanAdapterKind.Obdx && !_device.Items.Contains("tcp:192.168.4.1:23"))
+            _device.Items.Add("tcp:192.168.4.1:23");
+        // GVRET boards are often on WiFi/TCP; offer the SavvyCAN default endpoint as a hint.
+        if (CurrentAdapter == CanAdapterKind.Gvret && !_device.Items.Contains("tcp:192.168.4.1:23"))
             _device.Items.Add("tcp:192.168.4.1:23");
         if (_device.Items.Count > 0) _device.SelectedIndex = 0;
     }
