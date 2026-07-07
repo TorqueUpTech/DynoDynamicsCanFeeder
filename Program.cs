@@ -21,6 +21,14 @@ internal static class Program
             return 0;
         }
 
+        // Jump straight to the comms-hub emulator:  DynoDynamicsCanFeeder.exe --comms [comms.config.json]
+        if (args.Length >= 1 && args[0].Equals("--comms", StringComparison.OrdinalIgnoreCase))
+        {
+            var cfg = args.Length >= 2 && File.Exists(args[1]) ? CommsEmulatorConfig.Load(args[1]) : null;
+            Application.Run(new CommsEmulatorForm(cfg));
+            return 0;
+        }
+
         Application.Run(new MainForm(args.Length >= 1 ? args[0] : null));
         return 0;
     }

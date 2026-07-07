@@ -82,6 +82,16 @@ Preferred — **in-app editor** (no SQL): click **Database...** in the main wind
 Fallback — `feeder-ecu.sql` (edit `UnitID`s to real `sys_unit` ids, then
 `sqlite3 dyno-e.db < feeder-ecu.sql`). Units: rpm=161, Lambda=280, AFR=290.
 
+## Comms-hub emulator (experimental)
+
+**Comms Emu...** in the main window (or `DynoDynamicsCanFeeder.exe --comms`) emulates DigitalDyno's
+non-ECU devices without the hardware: it registers with DynoServer and, on a timer, announces the
+ticked devices present (COMMS Interface / Weather Station / Pit Box / EDM ...) via `DEVICE_STATUS`
+and publishes editable data points (e.g. weather temp/pressure/humidity) via `DATA_VALUE` - the same
+DynoCAN transport as the ECU feeder, keyed by `eDeviceId`. The transport is correct; the exact
+presence handshake and per-field Param/scaling are best-guess and **need tuning against a live
+capture** (see docs/GOTCHAS.md).
+
 ## Run & verify (needs hardware)
 
 1. Start DynoServer + DigitalDyno; select the feeder ECU.

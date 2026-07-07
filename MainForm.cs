@@ -28,6 +28,7 @@ public sealed class MainForm : Form
     private readonly Button _removeRoute = new() { Text = "Remove", Width = 70 };
 
     private readonly Button _database = new() { Text = "Database...", Width = 95 };
+    private readonly Button _comms = new() { Text = "Comms Emu...", Width = 95 };
     private readonly Button _load = new() { Text = "Load Config", Width = 95 };
     private readonly Button _save = new() { Text = "Save Config", Width = 95 };
     private string? _lastDbPath;
@@ -136,7 +137,7 @@ public sealed class MainForm : Form
 
         // --- action bar ---
         var actions = new FlowLayoutPanel { Dock = DockStyle.Bottom, AutoSize = true, Padding = new Padding(8, 4, 8, 8) };
-        actions.Controls.AddRange(new Control[] { _start, _stop, new Label { Width = 20 }, _database, _load, _save });
+        actions.Controls.AddRange(new Control[] { _start, _stop, new Label { Width = 20 }, _database, _comms, _load, _save });
 
         Controls.Add(vSplit);
         Controls.Add(actions);
@@ -194,6 +195,9 @@ public sealed class MainForm : Form
         _toolTip.SetToolTip(_database,
             "Edit DigitalDyno's ECU database (dyno-e.db): create the 'CAN DBC Feeder' ECU and its\n" +
             "channel definitions, or Import them straight from the routes above. Replaces feeder-ecu.sql.");
+        _toolTip.SetToolTip(_comms,
+            "Comms-hub emulator (experimental): announce devices present (COMMS Interface, Weather\n" +
+            "Station, Pit Box, EDM...) and feed weather data to DigitalDyno without the hardware.");
     }
 
     private void WireEvents()
@@ -211,6 +215,7 @@ public sealed class MainForm : Form
         _load.Click += (_, _) => LoadConfigDialog();
         _save.Click += (_, _) => SaveConfigDialog();
         _database.Click += (_, _) => OpenDatabaseEditor();
+        _comms.Click += (_, _) => { using var f = new CommsEmulatorForm(); f.ShowDialog(this); };
         _start.Click += (_, _) => StartFeeder();
         _stop.Click += (_, _) => StopFeeder();
         _liveTimer.Tick += (_, _) => RefreshLive();
