@@ -58,15 +58,17 @@ public sealed class CommsEmulatorConfig
     public void Save(string path) => File.WriteAllText(path, JsonSerializer.Serialize(this, JsonOpts));
 
     /// <summary>
-    /// A sensible starting point for EDM sensor emulation: present the common devices and feed the
-    /// EDM air-temp input plus 3 custom inputs as raw ADC counts (0..4096). Air-temp default is the
-    /// captured live value 600 on param 25 (0x19) with flags 1 (≈18 C via the matching custom-channel
-    /// cal). Values are raw counts (Scale 1); tune them + the DB channel cal to taste.
+    /// A sensible starting point. Includes BOTH the (working) weather-station data points AND the
+    /// EDM sensor inputs, so a fresh open never drops one for the other.
     ///
-    /// Source device = EDM: physically the sensors are on the EDM. NB the handheld captures showed
-    /// these DATA_VALUE frames actually broadcast by HANDLED(4) (the EDM(3) only sent a FW_CTRL
-    /// heartbeat), so if DigitalDyno doesn't pick a channel up, switch that row's Device to HANDHELD.
-    /// The custom channel matches on the param (SourceId), which is likely device-agnostic anyway.
+    /// Weather: published as WEATHER_STATION DATA_VALUE (Param 1/2/3, physical value via Scale).
+    /// EDM: air-temp + 3 custom inputs as raw ADC counts (0..4096); air-temp default is the captured
+    /// live value 600 on param 25 (0x19) flags 1 (≈18 C via the matching custom-channel cal).
+    ///
+    /// EDM source device = EDM: physically the sensors are on the EDM. NB the handheld captures
+    /// showed these DATA_VALUE frames actually broadcast by HANDHELD(4) (the EDM(3) only sent a
+    /// FW_CTRL heartbeat), so if DigitalDyno doesn't pick a channel up, switch that row's Device to
+    /// HANDHELD. The custom channel matches on the param (SourceId), which is likely device-agnostic.
     /// </summary>
     public static CommsEmulatorConfig Default()
     {
@@ -74,10 +76,15 @@ public sealed class CommsEmulatorConfig
         {
             DataPoints =
             {
-                new CommsDataPoint { Name = "Air Temp", Device = "EDM", Cmd = 15, Param = 25, Flags = 1, Value = 600,  Scale = 1 },
-                new CommsDataPoint { Name = "Custom 1", Device = "EDM", Cmd = 15, Param = 27, Flags = 1, Value = 2048, Scale = 1 },
-                new CommsDataPoint { Name = "Custom 2", Device = "EDM", Cmd = 15, Param = 28, Flags = 1, Value = 2048, Scale = 1 },
-                new CommsDataPoint { Name = "Custom 3", Device = "EDM", Cmd = 15, Param = 29, Flags = 1, Value = 2048, Scale = 1 },
+                // Weather station (was working in DigitalDyno) - physical value, scaled.
+                new CommsDataPoint { Name = "Weather Air Temp", Device = "WEATHER_STATION", Cmd = 15, Param = 1, Value = 25.0,   Scale = 0.1 },
+                new CommsDataPoint { Name = "Baro Pressure",    Device = "WEATHER_STATION", Cmd = 15, Param = 2, Value = 1013.0, Scale = 0.1 },
+                new CommsDataPoint { Name = "Humidity",         Device = "WEATHER_STATION", Cmd = 15, Param = 3, Value = 50.0,   Scale = 0.1 },
+                // EDM sensor inputs - raw ADC counts (Scale 1), flags 1.
+                new CommsDataPoint { Name = "EDM Air Temp", Device = "EDM", Cmd = 15, Param = 25, Flags = 1, Value = 600,  Scale = 1 },
+                new CommsDataPoint { Name = "EDM Custom 1", Device = "EDM", Cmd = 15, Param = 27, Flags = 1, Value = 2048, Scale = 1 },
+                new CommsDataPoint { Name = "EDM Custom 2", Device = "EDM", Cmd = 15, Param = 28, Flags = 1, Value = 2048, Scale = 1 },
+                new CommsDataPoint { Name = "EDM Custom 3", Device = "EDM", Cmd = 15, Param = 29, Flags = 1, Value = 2048, Scale = 1 },
             }
         };
     }
