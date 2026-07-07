@@ -6,9 +6,27 @@ user-chosen DBC signals (engine **RPM**, wideband **lambda**, anything in a DBC)
 them to DynoServer as an "ECU" producer — the same role `DynoClientECU.exe` plays, but sourced
 from any DBC-described device instead of a hard-coded per-brand protocol.
 
+![Dyno Dynamics CAN Feeder — main window](docs-img/mainform.png)
+
 > **Build prerequisite:** three proprietary Dyno Dynamics assemblies
 > (`DynoDotNet.dll`, `Lib_ECU.dll`, `Lib_CAN.dll`) are **not** included — copy them from a
 > licensed DigitalDyno install into `libs\`. See [`libs/README.md`](libs/README.md).
+
+## Quickstart — bench test with no cable
+
+Drive the whole pipeline (CAN → decode → DigitalDyno) without any hardware:
+
+1. In **UltimateCANScanner**, start its **TCP frame server** (`127.0.0.1:51729`), or run **CAN-Replay**
+   against a captured log.
+2. Run `DynoDynamicsCanFeeder.exe`: **Adapter → VirtualTcp**, Device `tcp:127.0.0.1:51729`, load a DBC
+   and add routes (double-click a signal — scale/offset auto-fill from the DBC), then **Start**.
+   Decoded values stream into **Live decoded values**, and into DigitalDyno once the ECU is registered
+   (**Database…** creates it).
+3. For the dyno's own devices, **Comms Emu…** emulates the Weather Station + EDM sensors (e.g. inlet
+   air temp) straight into DigitalDyno — no comms hub needed.
+
+All of that runs on one PC with DynoServer, so you can validate DBCs, routes, and gauges before you're
+anywhere near the rollers.
 
 ## How it works
 
