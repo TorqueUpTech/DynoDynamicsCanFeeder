@@ -12,7 +12,9 @@ public enum CanAdapterKind
     /// <summary>SavvyCAN-compatible GVRET logger (ESP32RET / Macchina / CANDUE) over serial or TCP.</summary>
     Gvret,
     /// <summary>PEAK PCAN-USB interface via the classic PCANBasic.dll API.</summary>
-    Peak
+    Peak,
+    /// <summary>Receive-only virtual source: a RawCanWire TCP feed (UltimateCANScanner / CAN-Replay).</summary>
+    VirtualTcp
 }
 
 /// <summary>

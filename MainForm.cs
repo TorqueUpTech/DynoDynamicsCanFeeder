@@ -53,7 +53,7 @@ public sealed class MainForm : Form
         _adapter.Items.AddRange(new object[]
         {
             CanAdapterKind.IxxatVci, CanAdapterKind.Obdx, CanAdapterKind.J2534,
-            CanAdapterKind.Gvret, CanAdapterKind.Peak
+            CanAdapterKind.Gvret, CanAdapterKind.Peak, CanAdapterKind.VirtualTcp
         });
         _adapter.SelectedIndex = 0;
         foreach (var br in (CanBitRate[])Enum.GetValues(typeof(CanBitRate))) _bitrate.Items.Add(br);
@@ -154,7 +154,9 @@ public sealed class MainForm : Form
             "  Obdx - OBDX Pro (USB, WiFi or BLE)\n" +
             "  J2534 - any installed SAE J2534 PassThru cable (64-bit driver)\n" +
             "  Gvret - SavvyCAN-compatible GVRET logger (ESP32RET etc.) over serial or TCP\n" +
-            "  Peak - PEAK PCAN-USB (PCANBasic driver).");
+            "  Peak - PEAK PCAN-USB (PCANBasic driver)\n" +
+            "  VirtualTcp - no cable: read a RawCanWire TCP feed from UltimateCANScanner /\n" +
+            "               CAN-Replay (default 127.0.0.1:51729). Great for bench testing.");
         _toolTip.SetToolTip(_device,
             "The specific adapter / endpoint. Click Refresh to list connected devices.\n" +
             "OBDX/GVRET over WiFi: type the endpoint directly, e.g. tcp:192.168.4.1:23\n" +

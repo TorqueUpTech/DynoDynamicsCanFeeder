@@ -92,7 +92,7 @@ public sealed class Feeder : IDisposable
         // OBDX and GVRET endpoints (tcp:host:port, serial:COMx, ble:...) are addressable, not
         // enumerable, so honour an explicit transport key directly — this is how a WiFi endpoint on
         // a non-default IP (or a GVRET board on TCP) is selected.
-        bool addressable = cfg.AdapterKind is CanAdapterKind.Obdx or CanAdapterKind.Gvret;
+        bool addressable = cfg.AdapterKind is CanAdapterKind.Obdx or CanAdapterKind.Gvret or CanAdapterKind.VirtualTcp;
         if (addressable && LooksLikeTransportKey(cfg.DeviceKey))
             return new CanDeviceInfo(cfg.AdapterKind, cfg.DeviceKey, $"{cfg.AdapterKind} (configured)", cfg.DeviceKey);
 

@@ -11,6 +11,7 @@ public static class AdapterFactory
         CanAdapterKind.J2534    => J2534.J2534CanAdapter.EnumerateDevices(),
         CanAdapterKind.Gvret    => Gvret.GvretCanAdapter.EnumerateDevices(),
         CanAdapterKind.Peak     => Peak.PcanCanAdapter.EnumerateDevices(),
+        CanAdapterKind.VirtualTcp => VirtualTcp.VirtualTcpCanAdapter.EnumerateDevices(),
         _ => new List<CanDeviceInfo>()
     };
 
@@ -21,6 +22,7 @@ public static class AdapterFactory
         CanAdapterKind.J2534    => new J2534.J2534CanAdapter(),
         CanAdapterKind.Gvret    => new Gvret.GvretCanAdapter(),
         CanAdapterKind.Peak     => new Peak.PcanCanAdapter(),
+        CanAdapterKind.VirtualTcp => new VirtualTcp.VirtualTcpCanAdapter(),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported adapter for the feeder.")
     };
 }
