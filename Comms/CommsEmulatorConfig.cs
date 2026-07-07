@@ -59,9 +59,14 @@ public sealed class CommsEmulatorConfig
 
     /// <summary>
     /// A sensible starting point for EDM sensor emulation: present the common devices and feed the
-    /// EDM air-temp input plus 3 custom inputs as raw ADC counts (0..4096). The air-temp default is
-    /// the captured live value 600 on HANDHELD param 25 (0x19) with flags 1 (≈18 C via the matching
-    /// custom-channel cal). Values are raw counts (Scale 1); tune them + the DB channel cal to taste.
+    /// EDM air-temp input plus 3 custom inputs as raw ADC counts (0..4096). Air-temp default is the
+    /// captured live value 600 on param 25 (0x19) with flags 1 (≈18 C via the matching custom-channel
+    /// cal). Values are raw counts (Scale 1); tune them + the DB channel cal to taste.
+    ///
+    /// Source device = EDM: physically the sensors are on the EDM. NB the handheld captures showed
+    /// these DATA_VALUE frames actually broadcast by HANDLED(4) (the EDM(3) only sent a FW_CTRL
+    /// heartbeat), so if DigitalDyno doesn't pick a channel up, switch that row's Device to HANDHELD.
+    /// The custom channel matches on the param (SourceId), which is likely device-agnostic anyway.
     /// </summary>
     public static CommsEmulatorConfig Default()
     {
@@ -69,10 +74,10 @@ public sealed class CommsEmulatorConfig
         {
             DataPoints =
             {
-                new CommsDataPoint { Name = "Air Temp", Device = "HANDHELD", Cmd = 15, Param = 25, Flags = 1, Value = 600,  Scale = 1 },
-                new CommsDataPoint { Name = "Custom 1", Device = "HANDHELD", Cmd = 15, Param = 27, Flags = 1, Value = 2048, Scale = 1 },
-                new CommsDataPoint { Name = "Custom 2", Device = "HANDHELD", Cmd = 15, Param = 28, Flags = 1, Value = 2048, Scale = 1 },
-                new CommsDataPoint { Name = "Custom 3", Device = "HANDHELD", Cmd = 15, Param = 29, Flags = 1, Value = 2048, Scale = 1 },
+                new CommsDataPoint { Name = "Air Temp", Device = "EDM", Cmd = 15, Param = 25, Flags = 1, Value = 600,  Scale = 1 },
+                new CommsDataPoint { Name = "Custom 1", Device = "EDM", Cmd = 15, Param = 27, Flags = 1, Value = 2048, Scale = 1 },
+                new CommsDataPoint { Name = "Custom 2", Device = "EDM", Cmd = 15, Param = 28, Flags = 1, Value = 2048, Scale = 1 },
+                new CommsDataPoint { Name = "Custom 3", Device = "EDM", Cmd = 15, Param = 29, Flags = 1, Value = 2048, Scale = 1 },
             }
         };
     }
