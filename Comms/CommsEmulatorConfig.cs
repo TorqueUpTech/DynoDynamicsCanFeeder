@@ -80,11 +80,15 @@ public sealed class CommsEmulatorConfig
                 new CommsDataPoint { Name = "Weather Air Temp", Device = "WEATHER_STATION", Cmd = 15, Param = 1, Value = 25.0,   Scale = 0.1 },
                 new CommsDataPoint { Name = "Baro Pressure",    Device = "WEATHER_STATION", Cmd = 15, Param = 2, Value = 1013.0, Scale = 0.1 },
                 new CommsDataPoint { Name = "Humidity",         Device = "WEATHER_STATION", Cmd = 15, Param = 3, Value = 50.0,   Scale = 0.1 },
-                // EDM sensor inputs - raw ADC counts (Scale 1), flags 1.
-                new CommsDataPoint { Name = "EDM Air Temp", Device = "EDM", Cmd = 15, Param = 25, Flags = 1, Value = 600,  Scale = 1 },
-                new CommsDataPoint { Name = "EDM Custom 1", Device = "EDM", Cmd = 15, Param = 27, Flags = 1, Value = 2048, Scale = 1 },
-                new CommsDataPoint { Name = "EDM Custom 2", Device = "EDM", Cmd = 15, Param = 28, Flags = 1, Value = 2048, Scale = 1 },
-                new CommsDataPoint { Name = "EDM Custom 3", Device = "EDM", Cmd = 15, Param = 29, Flags = 1, Value = 2048, Scale = 1 },
+                // EDM sensor inputs - confirmed from a live FTDI capture (Ftd2xx.dll proxy) decoded
+                // with reverse/ftdi-logger. EDM broadcasts DATA_VALUE with flags 0; raw value, the
+                // built-in dyno channel applies the scale. Inlet Air Temp = param 0x24 (36), raw/10 = C
+                // (verified: raw 175 -> DigitalDyno showed 17.5 C). The others are the EDM's other
+                // connected inputs (label/recalibrate as your 3 custom sensors).
+                new CommsDataPoint { Name = "EDM Air Temp",   Device = "EDM", Cmd = 15, Param = 36, Flags = 0, Value = 175,  Scale = 1 },
+                new CommsDataPoint { Name = "EDM Input 0x28", Device = "EDM", Cmd = 15, Param = 40, Flags = 0, Value = 5000, Scale = 1 },
+                new CommsDataPoint { Name = "EDM Input 0x3A", Device = "EDM", Cmd = 15, Param = 58, Flags = 0, Value = 1215, Scale = 1 },
+                new CommsDataPoint { Name = "EDM Input 0x3B", Device = "EDM", Cmd = 15, Param = 59, Flags = 0, Value = 27,   Scale = 1 },
             }
         };
     }
