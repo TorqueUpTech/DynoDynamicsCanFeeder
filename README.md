@@ -1,7 +1,7 @@
 # Dyno Dynamics CAN Feeder
 
-Bridges a live CAN bus (**IXXAT**, **OBDX**, generic **J2534**, **SavvyCAN/GVRET**, or **PEAK
-PCAN-USB**) into **Dyno Dynamics DigitalDyno**, decoding
+Bridges a live CAN bus (**IXXAT**, **OBDX**, generic **J2534**, **SavvyCAN/GVRET**, **PEAK
+PCAN-USB**, or a cable-free **VirtualTcp** RawCanWire feed) into **Dyno Dynamics DigitalDyno**, decoding
 user-chosen DBC signals (engine **RPM**, wideband **lambda**, anything in a DBC) and republishing
 them to DynoServer as an "ECU" producer — the same role `DynoClientECU.exe` plays, but sourced
 from any DBC-described device instead of a hard-coded per-brand protocol.
@@ -87,10 +87,17 @@ Fallback — `feeder-ecu.sql` (edit `UnitID`s to real `sys_unit` ids, then
 **Comms Emu...** in the main window (or `DynoDynamicsCanFeeder.exe --comms`) emulates DigitalDyno's
 non-ECU devices without the hardware: it registers with DynoServer and, on a timer, announces the
 ticked devices present (COMMS Interface / Weather Station / Pit Box / EDM ...) via `DEVICE_STATUS`
-and publishes editable data points (e.g. weather temp/pressure/humidity) via `DATA_VALUE` - the same
-DynoCAN transport as the ECU feeder, keyed by `eDeviceId`. The transport is correct; the exact
-presence handshake and per-field Param/scaling are best-guess and **need tuning against a live
-capture** (see docs/GOTCHAS.md).
+and publishes editable data points via `DATA_VALUE` — the same DynoCAN transport as the ECU feeder,
+keyed by `eDeviceId`.
+
+Includes **EDM sensor emulation**: the inlet air temperature is a built-in dyno channel fed by the
+EDM board — confirmed from a live FTDI capture to be `DATA_VALUE` on **param 0x24 (raw/10 = degC)**,
+so the default feeds it directly (no DB row). The EDM's 4 general-purpose inputs
+(`0x20/0x28/0x3A/0x3B`) are emitted too. **Custom Channels...** (or `--customch`) edits
+`user_customchanneldef` — create the "EDM Input 1-4" custom channels with the right `SourceId` +
+unit + 2-point calibration so they display. (Weather-station params 1/2/3 work; the real hardware
+uses 0x1B/0x1C/0x1D.) See the RE write-up in `reverse/` (not in this repo — it shims a proprietary
+driver) and docs/GOTCHAS.md.
 
 ## Run & verify (needs hardware)
 
