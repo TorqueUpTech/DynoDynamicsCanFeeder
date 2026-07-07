@@ -26,6 +26,7 @@ public sealed class CommsEmulatorForm : Form
     private readonly Button _stop = new() { Text = "Stop", Width = 90, Enabled = false };
     private readonly Button _load = new() { Text = "Load", Width = 70 };
     private readonly Button _save = new() { Text = "Save", Width = 70 };
+    private readonly Button _channels = new() { Text = "Custom Channels...", Width = 130 };
     private readonly TextBox _log = new() { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, Dock = DockStyle.Fill, BackColor = Color.Black, ForeColor = Color.Lime };
     private readonly ToolTip _tip = new() { AutoPopDelay = 30000, InitialDelay = 400, ReshowDelay = 100 };
 
@@ -77,6 +78,7 @@ public sealed class CommsEmulatorForm : Form
             new DataGridViewComboBoxColumn { HeaderText = "Device", DataPropertyName = nameof(CommsDataPoint.Device), DataSource = DeviceNames, Width = 120, FlatStyle = FlatStyle.Flat },
             new DataGridViewTextBoxColumn { HeaderText = "Cmd", DataPropertyName = nameof(CommsDataPoint.Cmd), Width = 45, ToolTipText = "DynoCAN command byte (15 = DATA_VALUE)." },
             new DataGridViewTextBoxColumn { HeaderText = "Param", DataPropertyName = nameof(CommsDataPoint.Param), Width = 50, ToolTipText = "Field id within the device (guess; tune against a capture)." },
+            new DataGridViewTextBoxColumn { HeaderText = "Flags", DataPropertyName = nameof(CommsDataPoint.Flags), Width = 45, ToolTipText = "data[1] sub/flags byte. EDM sensor frames use 1." },
             new DataGridViewTextBoxColumn { HeaderText = "Value", DataPropertyName = nameof(CommsDataPoint.Value), Width = 70, ToolTipText = "Physical value to publish (e.g. 25 for 25 C)." },
             new DataGridViewTextBoxColumn { HeaderText = "Scale", DataPropertyName = nameof(CommsDataPoint.Scale), Width = 60, ToolTipText = "raw = (Value - Offset) / Scale." },
             new DataGridViewTextBoxColumn { HeaderText = "Offset", DataPropertyName = nameof(CommsDataPoint.Offset), Width = 55 });
@@ -92,7 +94,7 @@ public sealed class CommsEmulatorForm : Form
 
         // Buttons (row 2, spans both columns)
         var bottom = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Fill };
-        bottom.Controls.AddRange(new Control[] { _start, _stop, _load, _save });
+        bottom.Controls.AddRange(new Control[] { _start, _stop, _load, _save, _channels });
         root.Controls.Add(bottom, 0, 2);
         root.SetColumnSpan(bottom, 2);
 
@@ -111,6 +113,7 @@ public sealed class CommsEmulatorForm : Form
         _stop.Click += (_, _) => StopEmu();
         _load.Click += (_, _) => LoadCfg();
         _save.Click += (_, _) => SaveCfg();
+        _channels.Click += (_, _) => { using var f = new CustomChannelForm(); f.ShowDialog(this); };
     }
 
     private void Apply(CommsEmulatorConfig cfg)

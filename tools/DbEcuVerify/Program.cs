@@ -54,6 +54,22 @@ try
     Check("Channels gone after delete", db.ListChannels(pid).Count == 0);
     Check("ECU gone after delete", db.ListEcus().All(e => e.ProtocolId != pid));
 
+    // ---- custom sensor channels (user_customchanneldef) ----
+    var cc0 = db.ListCustomChannels();
+    Check($"ListCustomChannels baseline ({cc0.Count})", cc0.Count >= 0);
+    var air = new CustomChannel { ChannelName = "SELFTEST Air", ShortName = "AirT", UnitId = 70, SourceId = 25, CalIn0 = 0, CalOut0 = 0, CalIn1 = 5, CalOut1 = 123 };
+    long ccId = db.SaveCustomChannel(air);
+    Check("SaveCustomChannel assigned id", ccId > 0 && air.ChannelId == ccId);
+    var back3 = db.ListCustomChannels().FirstOrDefault(x => x.ChannelId == ccId);
+    Check("custom channel read back (unit 70, src 25, cal out1 123)",
+        back3 is { UnitId: 70, SourceId: 25 } && Math.Abs(back3.CalOut1 - 123) < 1e-9);
+    air.CalOut1 = 150; db.SaveCustomChannel(air);
+    Check("custom channel update persists (no dup)",
+        db.ListCustomChannels().Count(x => x.ChannelId == ccId) == 1 &&
+        Math.Abs(db.ListCustomChannels().First(x => x.ChannelId == ccId).CalOut1 - 150) < 1e-9);
+    db.DeleteCustomChannel(ccId);
+    Check("custom channel deleted", db.ListCustomChannels().All(x => x.ChannelId != ccId));
+
     // Original untouched.
     Check("Live DB untouched (baseline count unchanged)", new EcuDatabase(src).ListEcus().Count == ecus0.Count);
 }

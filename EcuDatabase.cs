@@ -1,4 +1,5 @@
 using System.Data.SQLite;
+using System.Globalization;
 
 namespace DynoDynamicsCanFeeder;
 
@@ -35,6 +36,27 @@ public sealed class UnitInfo
     public string Description { get; set; } = "";
     public string Label => (string.IsNullOrEmpty(Name) ? Description : Name) + $"  (#{UnitId})";
     public override string ToString() => Label;
+}
+
+/// <summary>
+/// A DigitalDyno custom sensor channel (user_customchanneldef) — e.g. an EDM analog input
+/// calibrated to a real unit. <see cref="SourceId"/> is the decimal of the wire DATA_VALUE param
+/// byte the device sends (EDM input 0x19 -> 25). Calibration is 2-point linear from volts
+/// (<see cref="CalIn0"/>V -> <see cref="CalOut0"/>unit, <see cref="CalIn1"/>V -> <see cref="CalOut1"/>unit).
+/// </summary>
+public sealed class CustomChannel
+{
+    public long? ChannelId;               // null = new row
+    public bool IsActive { get; set; } = true;
+    public string ChannelName { get; set; } = "";
+    public string ShortName { get; set; } = "";
+    public int UnitId { get; set; }        // display unit (70/80 = C, 91 = kPa, 200 = V)
+    public int SourceId { get; set; }      // device input = decimal of the DATA_VALUE param byte
+    public double CalIn0 { get; set; }
+    public double CalOut0 { get; set; }
+    public double CalIn1 { get; set; } = 5;
+    public double CalOut1 { get; set; } = 5;
+    public override string ToString() => $"{ChannelName}  (src {SourceId})";
 }
 
 /// <summary>
@@ -243,5 +265,90 @@ public sealed class EcuDatabase
         cmd.Parameters.AddWithValue("@t", e.TachoChannel);
         cmd.Parameters.AddWithValue("@p", e.ProtocolId);
         cmd.Parameters.AddWithValue("@a", e.ActiveChans ?? "");
+    }
+
+    // ---- Custom sensor channels (user_customchanneldef) ----
+
+    /// <summary>List the non-deleted custom channels (EDM inputs, etc.).</summary>
+    public List<CustomChannel> ListCustomChannels()
+    {
+        var list = new List<CustomChannel>();
+        using var c = Open();
+        using var cmd = new SQLiteCommand(
+            "SELECT ChannelId, IsActive, ChannelName, ShortName, UnitId, SourceId, CalibParams " +
+            "FROM user_customchanneldef WHERE IsDeleted=0 ORDER BY ChannelId", c);
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+        {
+            var cc = new CustomChannel
+            {
+                ChannelId = r.GetInt64(0),
+                IsActive = r.GetInt32(1) != 0,
+                ChannelName = r.IsDBNull(2) ? "" : r.GetString(2),
+                ShortName = r.IsDBNull(3) ? "" : r.GetString(3),
+                UnitId = r.IsDBNull(4) ? 0 : r.GetInt32(4),
+                SourceId = r.IsDBNull(5) ? 0 : r.GetInt32(5),
+            };
+            ParseCal(r.IsDBNull(6) ? "" : r.GetString(6), cc);
+            list.Add(cc);
+        }
+        return list;
+    }
+
+    private static void ParseCal(string s, CustomChannel cc)
+    {
+        var p = s.Split(';');
+        double D(int i) => p.Length > i && double.TryParse(p[i], NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0;
+        if (p.Length >= 4) { cc.CalIn0 = D(0); cc.CalOut0 = D(1); cc.CalIn1 = D(2); cc.CalOut1 = D(3); }
+    }
+
+    /// <summary>
+    /// Insert/update a custom channel (2-point linear cal from volts to its unit). Mirrors the
+    /// fixed fields DigitalDyno's own EDM rows use (InputType 0 = straight voltage, CalibType 1,
+    /// CalibFromUnit 200 = V). Caller should <see cref="Backup"/> first. Returns the row id.
+    /// </summary>
+    public long SaveCustomChannel(CustomChannel cc)
+    {
+        string cal = string.Format(CultureInfo.InvariantCulture, "{0};{1};{2};{3}", cc.CalIn0, cc.CalOut0, cc.CalIn1, cc.CalOut1);
+        string shortName = string.IsNullOrEmpty(cc.ShortName) ? cc.ChannelName : cc.ShortName;
+        using var c = Open();
+        if (cc.ChannelId is { } id)
+        {
+            using var up = new SQLiteCommand(
+                "UPDATE user_customchanneldef SET IsActive=@act, ChannelName=@cn, ShortName=@sn, UnitId=@uid, " +
+                "SourceId=@src, CalibParams=@cal, CalibToUnit=@uid WHERE ChannelId=@id", c);
+            BindCustom(up, cc, cal, shortName);
+            up.Parameters.AddWithValue("@id", id);
+            up.ExecuteNonQuery();
+            return id;
+        }
+        using var ins = new SQLiteCommand(
+            "INSERT INTO user_customchanneldef " +
+            "(IsActive, IsDefault, IsDeleted, IsLocked, ChannelName, ShortName, UnitId, SourceId, SensorName, " +
+            " InputType, InputParams, FilterDef, CalibType, CalibParams, CalibFromUnit, CalibToUnit, Comments) " +
+            "VALUES (@act,0,0,0,@cn,@sn,@uid,@src,'Custom',0,'','N',1,@cal,200,@uid,'')", c);
+        BindCustom(ins, cc, cal, shortName);
+        ins.ExecuteNonQuery();
+        cc.ChannelId = c.LastInsertRowId;
+        return cc.ChannelId.Value;
+    }
+
+    private static void BindCustom(SQLiteCommand cmd, CustomChannel cc, string cal, string shortName)
+    {
+        cmd.Parameters.AddWithValue("@act", cc.IsActive ? 1 : 0);
+        cmd.Parameters.AddWithValue("@cn", cc.ChannelName ?? "");
+        cmd.Parameters.AddWithValue("@sn", shortName ?? "");
+        cmd.Parameters.AddWithValue("@uid", cc.UnitId);
+        cmd.Parameters.AddWithValue("@src", cc.SourceId);
+        cmd.Parameters.AddWithValue("@cal", cal);
+    }
+
+    /// <summary>Hard-delete a custom channel by id (call <see cref="Backup"/> first).</summary>
+    public void DeleteCustomChannel(long channelId)
+    {
+        using var c = Open();
+        using var cmd = new SQLiteCommand("DELETE FROM user_customchanneldef WHERE ChannelId=@id", c);
+        cmd.Parameters.AddWithValue("@id", channelId);
+        cmd.ExecuteNonQuery();
     }
 }

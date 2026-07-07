@@ -91,6 +91,7 @@ public sealed class CommsEmulator : IDisposable
                 if (!TryDevice(dp.Device, out eDeviceId dev)) continue;
                 var p = MakePacket(dev, dp.Cmd, ts);
                 p.Param = dp.Param;
+                p.Sub = dp.Flags;   // data[1] — EDM sensor frames set this to 0x01
                 p.ValueUnsigned = ToRaw(dp.Value, dp.Scale, dp.Offset);
                 _conn.Send(p);
             }

@@ -29,6 +29,13 @@ internal static class Program
             return 0;
         }
 
+        // Jump straight to the EDM / custom sensor channel editor:  DynoDynamicsCanFeeder.exe --customch [dyno-2.db]
+        if (args.Length >= 1 && args[0].Equals("--customch", StringComparison.OrdinalIgnoreCase))
+        {
+            Application.Run(new CustomChannelForm(args.Length >= 2 ? args[1] : null));
+            return 0;
+        }
+
         Application.Run(new MainForm(args.Length >= 1 ? args[0] : null));
         return 0;
     }
