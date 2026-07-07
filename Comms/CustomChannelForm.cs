@@ -22,7 +22,7 @@ public sealed class CustomChannelForm : Form
     private DataGridViewComboBoxColumn _unitCol = null!;
 
     private readonly Button _add = new() { Text = "Add", Width = 70 };
-    private readonly Button _addEdm = new() { Text = "Add EDM air-temp + 3 custom", Width = 190, BackColor = Color.FromArgb(210, 230, 250) };
+    private readonly Button _addEdm = new() { Text = "Add 3 EDM custom sensors", Width = 175, BackColor = Color.FromArgb(210, 230, 250) };
     private readonly Button _remove = new() { Text = "Remove", Width = 70 };
     private readonly Button _save = new() { Text = "Save to database", Width = 130, BackColor = Color.FromArgb(210, 240, 210) };
     private readonly Button _close = new() { Text = "Close", Width = 80 };
@@ -113,8 +113,9 @@ public sealed class CustomChannelForm : Form
 
     private void AddEdmDefaults()
     {
-        // Air temp: raw 600 (the captured live value) => ~18 C with a 0..5V -> 0..123 C linear cal.
-        _rows.Add(new CustomChannel { ChannelName = "Air Temp (EDM)", ShortName = "AirTemp", UnitId = 70, SourceId = 25, CalIn0 = 0, CalOut0 = 0, CalIn1 = 5, CalOut1 = 123 });
+        // NB the inlet air temp is a BUILT-IN dyno channel (internal field 0x39), fed from the EDM -
+        // it is NOT a custom channel, so it is not seeded here. These are 3 extra custom sensors on
+        // spare EDM inputs (raw volts passthrough); rename + recalibrate to taste.
         for (int i = 1; i <= 3; i++)
             _rows.Add(new CustomChannel { ChannelName = $"Custom {i}", ShortName = $"Cust{i}", UnitId = 200, SourceId = 26 + i, CalIn0 = 0, CalOut0 = 0, CalIn1 = 5, CalOut1 = 5 });
     }
