@@ -85,10 +85,13 @@ public sealed class CommsEmulatorConfig
                 // built-in dyno channel applies the scale. Inlet Air Temp = param 0x24 (36), raw/10 = C
                 // (verified: raw 175 -> DigitalDyno showed 17.5 C). The others are the EDM's other
                 // connected inputs (label/recalibrate as your 3 custom sensors).
-                new CommsDataPoint { Name = "EDM Air Temp",   Device = "EDM", Cmd = 15, Param = 36, Flags = 0, Value = 175,  Scale = 1 },
-                new CommsDataPoint { Name = "EDM Input 0x28", Device = "EDM", Cmd = 15, Param = 40, Flags = 0, Value = 5000, Scale = 1 },
-                new CommsDataPoint { Name = "EDM Input 0x3A", Device = "EDM", Cmd = 15, Param = 58, Flags = 0, Value = 1215, Scale = 1 },
-                new CommsDataPoint { Name = "EDM Input 0x3B", Device = "EDM", Cmd = 15, Param = 59, Flags = 0, Value = 27,   Scale = 1 },
+                new CommsDataPoint { Name = "EDM Air Temp", Device = "EDM", Cmd = 15, Param = 36, Flags = 0, Value = 175,  Scale = 1 }, // 0x24, built-in inlet temp
+                // EDM Inputs 1-4 = the general-purpose analog ports (params 0x20/0x28/0x3A/0x3B),
+                // idle by default. Set a value here + a matching custom channel (SourceId = param).
+                new CommsDataPoint { Name = "EDM Input 1", Device = "EDM", Cmd = 15, Param = 32, Flags = 0, Value = 1061, Scale = 1 }, // 0x20
+                new CommsDataPoint { Name = "EDM Input 2", Device = "EDM", Cmd = 15, Param = 40, Flags = 0, Value = 5000, Scale = 1 }, // 0x28
+                new CommsDataPoint { Name = "EDM Input 3", Device = "EDM", Cmd = 15, Param = 58, Flags = 0, Value = 1215, Scale = 1 }, // 0x3A
+                new CommsDataPoint { Name = "EDM Input 4", Device = "EDM", Cmd = 15, Param = 59, Flags = 0, Value = 27,   Scale = 1 }, // 0x3B
             }
         };
     }

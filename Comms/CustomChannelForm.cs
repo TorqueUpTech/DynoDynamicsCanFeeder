@@ -22,7 +22,7 @@ public sealed class CustomChannelForm : Form
     private DataGridViewComboBoxColumn _unitCol = null!;
 
     private readonly Button _add = new() { Text = "Add", Width = 70 };
-    private readonly Button _addEdm = new() { Text = "Add 3 EDM custom sensors", Width = 175, BackColor = Color.FromArgb(210, 230, 250) };
+    private readonly Button _addEdm = new() { Text = "Add EDM Inputs 1-4", Width = 150, BackColor = Color.FromArgb(210, 230, 250) };
     private readonly Button _remove = new() { Text = "Remove", Width = 70 };
     private readonly Button _save = new() { Text = "Save to database", Width = 130, BackColor = Color.FromArgb(210, 240, 210) };
     private readonly Button _close = new() { Text = "Close", Width = 80 };
@@ -113,11 +113,14 @@ public sealed class CustomChannelForm : Form
 
     private void AddEdmDefaults()
     {
-        // NB the inlet air temp is a BUILT-IN dyno channel (internal field 0x39), fed from the EDM -
-        // it is NOT a custom channel, so it is not seeded here. These are 3 extra custom sensors on
-        // spare EDM inputs (raw volts passthrough); rename + recalibrate to taste.
-        for (int i = 1; i <= 3; i++)
-            _rows.Add(new CustomChannel { ChannelName = $"Custom {i}", ShortName = $"Cust{i}", UnitId = 200, SourceId = 26 + i, CalIn0 = 0, CalOut0 = 0, CalIn1 = 5, CalOut1 = 5 });
+        // NB inlet air temp is a BUILT-IN channel (EDM param 0x24), not a custom channel - not seeded.
+        // These are the EDM's 4 general-purpose inputs. SourceId = the live wire param confirmed from
+        // the FTDI capture (0x20/0x28/0x3A/0x3B = 32/40/58/59) - the stock "EDM Input #1-4" rows use
+        // mismatched SourceIds (18/175/19/25) which is why they read nothing. Rename/recalibrate to
+        // the sensor you wire to each input.
+        int[] param = { 32, 40, 58, 59 };
+        for (int i = 0; i < 4; i++)
+            _rows.Add(new CustomChannel { ChannelName = $"EDM Input {i + 1}", ShortName = $"EDM{i + 1}", UnitId = 200, SourceId = param[i], CalIn0 = 0, CalOut0 = 0, CalIn1 = 5, CalOut1 = 5 });
     }
 
     private void SaveToDb()
