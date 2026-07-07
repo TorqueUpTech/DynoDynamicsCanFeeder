@@ -5,7 +5,8 @@ using System.Windows.Forms;
 namespace DynoDynamicsCanFeeder;
 
 /// <summary>
-/// In-app editor for DigitalDyno's ECU database (dyno-e.db): create/edit the "CAN DBC Feeder"
+/// In-app editor for DigitalDyno's ECU database (C:\DynoData\dyno-2.db for 2WD, dyno-4.db for 4WD):
+/// create/edit the "CAN DBC Feeder"
 /// ECU and its channel definitions, and import channels straight from the feeder's routes so
 /// the CAN routing and the dyno-side presentation always match. Replaces hand-running feeder-ecu.sql.
 /// </summary>
@@ -58,7 +59,7 @@ public sealed class EcuDbForm : Form
     private void BuildUi()
     {
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, Padding = new Padding(8) };
-        top.Controls.Add(new Label { Text = "ECU database (dyno-e.db):", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 6, 4, 0) });
+        top.Controls.Add(new Label { Text = "ECU database (dyno-2.db):", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 6, 4, 0) });
         top.Controls.Add(_dbPath); top.Controls.Add(_browse); top.Controls.Add(_auto);
 
         // Left: ECU list + New/Delete
@@ -108,7 +109,7 @@ public sealed class EcuDbForm : Form
         _tt.SetToolTip(_protocol, "Unique ID that groups this ECU's channel definitions. Select this same ECU in DigitalDyno.\nNew ECUs are suggested a free value >= 20 (vendor ECUs use 1..14).");
         _tt.SetToolTip(_tacho, "The channel number that carries engine RPM (0 = none). Matches a Tacho-ticked route.");
         _tt.SetToolTip(_import, "Fill the channel table from the feeder's current routes (channel #, scale, offset, and a guessed unit).");
-        _tt.SetToolTip(_save, "Back up dyno-e.db, then insert/update this ECU and replace its channel rows. Close DigitalDyno first.");
+        _tt.SetToolTip(_save, "Back up the DB, then insert/update this ECU and replace its channel rows. Close DigitalDyno first.");
         _tt.SetToolTip(_deleteEcu, "Delete the selected ECU and its channel definitions (with confirmation).");
     }
 
@@ -126,7 +127,7 @@ public sealed class EcuDbForm : Form
 
     private void BrowseDb()
     {
-        using var dlg = new OpenFileDialog { Filter = "Dyno ECU DB (dyno-e.db)|dyno-e.db|SQLite (*.db)|*.db|All files (*.*)|*.*" };
+        using var dlg = new OpenFileDialog { Filter = "Dyno DB (dyno-*.db)|dyno-*.db|SQLite (*.db)|*.db|All files (*.*)|*.*", FileName = "dyno-2.db" };
         if (dlg.ShowDialog(this) == DialogResult.OK) LoadDb(dlg.FileName);
     }
 
@@ -210,7 +211,7 @@ public sealed class EcuDbForm : Form
 
     private void SaveToDb()
     {
-        if (_db is null) { Warn("Open a dyno-e.db first."); return; }
+        if (_db is null) { Warn("Open a dyno-2.db (or dyno-4.db) first."); return; }
         _chGrid.EndEdit();
         string name = _name.Text.Trim();
         if (name.Length == 0) { Warn("Give the ECU a name."); return; }

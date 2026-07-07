@@ -60,7 +60,7 @@ public sealed class CustomChannel
 }
 
 /// <summary>
-/// Read/write access to DigitalDyno's ECU database (dyno-e.db): list ECUs, their channel
+/// Read/write access to DigitalDyno's ECU database (C:\DynoData\dyno-2.db for 2WD): list ECUs, their channel
 /// definitions and units, and upsert a feeder ECU + its channels in one transaction (after a backup).
 /// </summary>
 public sealed class EcuDatabase
@@ -90,33 +90,56 @@ public sealed class EcuDatabase
     /// </summary>
     public static string? AutoLocate() => ListCandidateDatabases().FirstOrDefault();
 
+    /// <summary>The live data root DYNO_Main uses, and its per-dyno-type DB filenames in preference
+    /// order: 2WD -> dyno-2.db (default), 4WD -> dyno-4.db, then the eddy/motorcycle/qt variants.</summary>
+    public const string DataRoot = @"C:\DynoData";
+    public static readonly string[] DynoDbNames = { "dyno-2.db", "dyno-4.db", "dyno-e.db", "dyno-m.db", "dyno-qt.db" };
+
     /// <summary>
-    /// All plausible dyno databases, best-first: live <c>C:\DynoData\dyno-*.db</c> (newest write
-    /// first), then the Documents template set. Lets the editor default sensibly and still offer a
-    /// pick-list. Never throws.
+    /// All plausible dyno databases, best-first: the live <c>C:\DynoData</c> per-type files in
+    /// preference order (dyno-2.db for 2WD first), then any other <c>dyno-*.db</c> there (newest
+    /// write first), then the Documents installer templates. Lets the editor default to the 2WD DB
+    /// and still offer a pick-list. Never throws.
     /// </summary>
     public static IReadOnlyList<string> ListCandidateDatabases()
     {
         var found = new List<string>();
-        void AddFrom(string dir)
+        void Add(string f)
+        {
+            if (File.Exists(f) && !found.Contains(f, StringComparer.OrdinalIgnoreCase)) found.Add(f);
+        }
+        void AddGlob(string dir)
         {
             try
             {
                 if (!Directory.Exists(dir)) return;
                 foreach (var f in Directory.EnumerateFiles(dir, "dyno-*.db", SearchOption.AllDirectories)
                                            .OrderByDescending(File.GetLastWriteTimeUtc))
-                    if (!found.Contains(f, StringComparer.OrdinalIgnoreCase))
-                        found.Add(f);
+                    Add(f);
             }
             catch { /* unreadable dir - skip */ }
         }
 
-        // 1) The live data root DYNO_Main uses.
-        AddFrom(@"C:\DynoData");
-        try { AddFrom(System.IO.Path.Combine(System.IO.Path.GetPathRoot(Environment.SystemDirectory) ?? @"C:\", "DynoData")); } catch { }
-        // 2) Installer master/template copies under the user's Documents.
-        try { AddFrom(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)); } catch { }
+        // 1) Live root, per-dyno-type files in preference order (dyno-2.db = 2WD default).
+        foreach (var root in DataRoots())
+            foreach (var name in DynoDbNames)
+                Add(System.IO.Path.Combine(root, name));
+        // 2) Any other dyno-*.db in the live root, newest first.
+        foreach (var root in DataRoots())
+            AddGlob(root);
+        // 3) Installer master/template copies under the user's Documents (fallback only).
+        try { AddGlob(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)); } catch { }
         return found;
+    }
+
+    private static IEnumerable<string> DataRoots()
+    {
+        yield return DataRoot;
+        string? sys = null;
+        try { sys = System.IO.Path.Combine(System.IO.Path.GetPathRoot(Environment.SystemDirectory) ?? @"C:\", "DynoData"); }
+        catch { /* ignore */ }
+        if (sys != null && !string.Equals(sys, DataRoot, StringComparison.OrdinalIgnoreCase))
+            yield return sys;
     }
 
     public List<UnitInfo> ListUnits()

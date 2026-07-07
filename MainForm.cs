@@ -193,7 +193,7 @@ public sealed class MainForm : Form
         _toolTip.SetToolTip(_load, "Load all settings above from a feeder*.config.json file.");
         _toolTip.SetToolTip(_save, "Save the current settings to a feeder*.config.json file.");
         _toolTip.SetToolTip(_database,
-            "Edit DigitalDyno's ECU database (dyno-e.db): create the 'CAN DBC Feeder' ECU and its\n" +
+            "Edit DigitalDyno's ECU database (C:\\DynoData\\dyno-2.db for 2WD): create the 'CAN DBC Feeder' ECU and its\n" +
             "channel definitions, or Import them straight from the routes above. Replaces feeder-ecu.sql.");
         _toolTip.SetToolTip(_comms,
             "Comms-hub emulator (experimental): announce devices present (COMMS Interface, Weather\n" +

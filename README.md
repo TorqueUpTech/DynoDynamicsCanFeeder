@@ -90,15 +90,18 @@ loaded from the GUI or edited by hand: adapter, bitrate, DBC path, and signal->c
 
 Preferred — **in-app editor** (no SQL): click **Database...** in the main window (or run
 `DynoDynamicsCanFeeder.exe --dbeditor`). It:
-- Auto-locates `Documents\<ver>\databases\dyno-e.db` (or Browse), lists existing ECUs.
+- Auto-locates the live database — **`C:\DynoData\dyno-2.db`** on a **2WD** dyno
+  (**4WD** uses **`dyno-4.db`**; also `dyno-e/-m/-qt` variants), or Browse. Lists existing ECUs.
+  (The `Documents\<ver>\databases\` set is only the installer's template and is NOT what the running
+  app reads — edit the `C:\DynoData` copy.)
 - **New ECU** pre-fills "CAN DBC Feeder" with a free Protocol ID (>= 20).
 - **Import from feeder routes** fills the channel table from your routes (channel #, scale,
   offset, guessed unit) and sets the Tacho channel.
-- **Save to database** backs up dyno-e.db, then inserts/updates the ECU and replaces its channels
+- **Save to database** backs it up, then inserts/updates the ECU and replaces its channels
   in one transaction. Close DigitalDyno first; restart it to see the new ECU, then select it.
 
 Fallback — `feeder-ecu.sql` (edit `UnitID`s to real `sys_unit` ids, then
-`sqlite3 dyno-e.db < feeder-ecu.sql`). Units: rpm=161, Lambda=280, AFR=290.
+`sqlite3 C:\DynoData\dyno-2.db < feeder-ecu.sql`). Units: rpm=161, Lambda=280, AFR=290.
 
 ## Comms-hub emulator (experimental)
 
