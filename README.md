@@ -8,9 +8,10 @@ from any DBC-described device instead of a hard-coded per-brand protocol.
 
 ![Dyno Dynamics CAN Feeder — main window](docs-img/mainform.png)
 
-> **Build prerequisite:** three proprietary Dyno Dynamics assemblies
-> (`DynoDotNet.dll`, `Lib_ECU.dll`, `Lib_CAN.dll`) are **not** included — copy them from a
-> licensed DigitalDyno install into `libs\`. See [`libs/README.md`](libs/README.md).
+> **Private repo.** It bundles Dyno Dynamics' proprietary assemblies
+> (`DynoDotNet.dll`, `Lib_ECU.dll`, `Lib_CAN.dll` in `libs\`), so it builds/runs out of the box —
+> but for that reason it must stay private and those DLLs must not be redistributed publicly.
+> See [`libs/README.md`](libs/README.md).
 
 ## Quickstart — bench test with no cable
 

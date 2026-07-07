@@ -9,10 +9,8 @@ obj/
 packages/
 *.nupkg
 
-# Proprietary Dyno Dynamics assemblies - NOT redistributable.
-# Copy these from your DigitalDyno install (C:\Program Files (x86)\Dyno\DynoClientECU\)
-# into libs\ before building. See libs\README.md.
-libs/*.dll
+# Dyno Dynamics assemblies (DynoDotNet/Lib_ECU/Lib_CAN) live in libs\ and ARE committed here
+# (PRIVATE repo). They are Dyno Dynamics' proprietary IP - do not make this repo public with them.
 
 # Vendor DBC intentionally excluded from this repo (supply your own).
 ECM_HS.dbc
