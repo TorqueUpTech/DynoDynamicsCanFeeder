@@ -82,16 +82,45 @@ public sealed class TcpObdxTransport : IObdxTransport
         _client = new TcpClient();
         _client.Connect(_host, _port);
         _client.NoDelay = true;
+        // Probe a silent peer so a wedged/gone OBDX SoftAP surfaces as a socket error in seconds
+        // instead of hanging a half-open connection forever.
+        TrySetKeepAlive(_client.Client, timeMs: 2000, intervalMs: 1000);
         _stream = _client.GetStream();
         _stream.ReadTimeout = 150;
+    }
+
+    private static void TrySetKeepAlive(Socket sock, uint timeMs, uint intervalMs)
+    {
+        try
+        {
+            sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+            // Windows tcp_keepalive: { onoff, keepalivetime(ms), keepaliveinterval(ms) } as u32 LE.
+            var ka = new byte[12];
+            BitConverter.GetBytes(1u).CopyTo(ka, 0);
+            BitConverter.GetBytes(timeMs).CopyTo(ka, 4);
+            BitConverter.GetBytes(intervalMs).CopyTo(ka, 8);
+            sock.IOControl(IOControlCode.KeepAliveValues, ka, null);
+        }
+        catch { /* best effort — keep-alive tuning may be unavailable on some stacks */ }
     }
 
     public void Write(byte[] data) => _stream!.Write(data, 0, data.Length);
 
     public int Read(byte[] buffer)
     {
-        try { return _stream!.Read(buffer, 0, buffer.Length); }
-        catch (IOException) { return 0; } // read timeout surfaces as IOException(SocketException)
+        try
+        {
+            int n = _stream!.Read(buffer, 0, buffer.Length);
+            if (n == 0)
+                throw new IOException("OBDX connection closed by peer."); // graceful close
+            return n;
+        }
+        catch (IOException ex) when (ex.InnerException is SocketException se
+                                     && (se.SocketErrorCode == SocketError.TimedOut
+                                         || se.SocketErrorCode == SocketError.WouldBlock))
+        {
+            return 0; // benign read timeout — nothing arrived this interval
+        }
     }
 
     public void Close()

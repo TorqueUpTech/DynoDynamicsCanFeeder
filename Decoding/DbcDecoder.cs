@@ -48,6 +48,25 @@ public sealed class DbcDecoder
     }
 
     /// <summary>
+    /// The distinct (Id, Extended) of every DBC message that carries at least one of the named
+    /// signals — the exact set an adapter acceptance-filter needs so it only delivers the frames we
+    /// actually decode and route. Signal names are matched case-insensitively.
+    /// </summary>
+    public IReadOnlyList<(uint Id, bool Extended)> MessageIdsForSignals(IEnumerable<string> signalNames)
+    {
+        var wanted = new HashSet<string>(signalNames, StringComparer.OrdinalIgnoreCase);
+        var result = new List<(uint, bool)>();
+        foreach (var kv in _messages)
+            foreach (var signal in kv.Value.Signals)
+                if (wanted.Contains(signal.Name))
+                {
+                    result.Add(kv.Key);
+                    break; // this message qualifies; move to the next
+                }
+        return result;
+    }
+
+    /// <summary>
     /// Look up the DBC message for a frame. Some DBCs don't set the extended flag
     /// consistently, so the opposite framing is tried before giving up.
     /// </summary>

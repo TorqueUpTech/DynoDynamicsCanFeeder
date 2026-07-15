@@ -138,23 +138,48 @@ public static class ObdxDvi
 
     /// <summary>
     /// The command sequence that puts the tool into "raw monitor + faithful TX" for a HS-CAN bus:
-    /// set protocol → baud → clear filters → add pass-all 11-bit and 29-bit filters → disable ISO-TP
-    /// reassembly → disable write formatting → enable comms. The OBDX forwards ONLY frames matching an
-    /// enabled PASS filter (manual Note 2), so the two monitor-all filters are what make RX flow at all;
-    /// without them the tool ACKs every config command but never delivers a frame. Send these (in order)
-    /// after the ELM→DVI handshake, holding back the final comms-enable until the RX pump is running.
+    /// set protocol → baud → clear filters → add PASS filters → disable ISO-TP reassembly → disable
+    /// write formatting → enable comms. The OBDX forwards ONLY frames matching an enabled PASS filter
+    /// (manual Note 2), so the filters are what make RX flow at all; without them the tool ACKs every
+    /// config command but never delivers a frame. With <paramref name="acceptIds"/> empty/null it
+    /// installs two monitor-all filters (every 11- and 29-bit ID); with a non-empty set it installs one
+    /// exact-match filter per ID instead — so a bandwidth-limited link only receives the routed IDs.
+    /// Send these (in order) after the ELM→DVI handshake, holding back the final comms-enable until the
+    /// RX pump is running.
     /// </summary>
-    public static IReadOnlyList<byte[]> RawCanInit(byte baudCode, bool listenOnly) =>
-    [
-        SetProtocol(ProtoHsCan),
-        SetCanBaud(baudCode),
-        ClearAllFilters(),
-        MonitorAllFilter(extended: false, number: 0), // pass every 11-bit ID (GM normal-mode broadcast)
-        MonitorAllFilter(extended: true, number: 1),   // pass every 29-bit ID (J1939 decode fallback)
-        SetAutoProcessing(false),
-        SetAutoFormatting(false),
-        SetComms(listenOnly ? CommsListenOnly : CommsOn),
-    ];
+    public static IReadOnlyList<byte[]> RawCanInit(byte baudCode, bool listenOnly,
+                                                   IReadOnlyCollection<CanAcceptId>? acceptIds = null)
+    {
+        var seq = new List<byte[]>
+        {
+            SetProtocol(ProtoHsCan),
+            SetCanBaud(baudCode),
+            ClearAllFilters(),
+        };
+
+        if (acceptIds is { Count: > 0 })
+        {
+            // One exact-match PASS filter per routed ID (full-width mask). This is what keeps a
+            // bandwidth-limited link (OBDX WiFi) from tunnelling the whole bus — only these IDs flow.
+            byte number = 0;
+            foreach (var f in acceptIds)
+            {
+                uint mask = f.Extended ? 0x1FFFFFFFu : 0x7FFu;
+                seq.Add(SetEntireFilter(number++, f.Extended, FilterPass, enabled: true,
+                                        id: f.Id & mask, mask: mask));
+            }
+        }
+        else
+        {
+            seq.Add(MonitorAllFilter(extended: false, number: 0)); // every 11-bit ID (GM broadcast)
+            seq.Add(MonitorAllFilter(extended: true, number: 1));  // every 29-bit ID (J1939 fallback)
+        }
+
+        seq.Add(SetAutoProcessing(false));
+        seq.Add(SetAutoFormatting(false));
+        seq.Add(SetComms(listenOnly ? CommsListenOnly : CommsOn));
+        return seq;
+    }
 
     /// <summary>Map a bit rate to the OBDX predefined baud code (0x34/0x15). Throws if unsupported.</summary>
     public static byte BaudCode(CanBitRate bitRate) => bitRate switch

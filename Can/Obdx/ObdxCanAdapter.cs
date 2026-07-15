@@ -14,17 +14,37 @@ namespace IxxatCanTool.Can.Obdx;
 /// <see cref="ObdxDvi"/>. Timestamps are taken on arrival (RX-timestamp option left off), and
 /// extended is inferred from the ID, matching the Ixxat/legacy path.
 /// </summary>
-public sealed class ObdxCanAdapter : ICanAdapter
+public sealed class ObdxCanAdapter : ICanAdapter, ICanAcceptanceFilter
 {
-    private readonly object _writeLock = new();   // serialises transport writes
+    /// <summary>Conservative cap on exact-match RX filter slots; beyond this we fall back to
+    /// monitor-all (per the DVI manual the tool has a finite filter table).</summary>
+    public const int MaxAcceptanceFilters = 16;
+
+    // A WiFi link no-data-for-this-long is treated as a wedged/dropped OBDX and forces a reconnect
+    // (the tool stops streaming under load/interference while the TCP socket may stay open). Reconnect
+    // backoff is bounded so a truly dead tool doesn't hammer, but recovers quickly from a blip.
+    private const int StallTimeoutMs = 5000;
+    private const int ReconnectMinBackoffMs = 500;
+    private const int ReconnectMaxBackoffMs = 5000;
+
+    private readonly object _writeLock = new();   // serialises transport writes + transport swaps
     private readonly object _cyclicLock = new();  // guards the software-timer table
     private readonly Stopwatch _clock = new();
     private readonly Dictionary<int, Timer> _cyclic = [];
     private int _nextCyclicHandle;
+    private IReadOnlyCollection<CanAcceptId> _acceptIds = [];
 
     private IObdxTransport? _transport;
     private Thread? _rxThread;
     private volatile bool _running;
+    private volatile bool _linkUp;                // false while (re)connecting — TX is dropped then
+    private volatile int _lastRxTick;             // Environment.TickCount of the last inbound bytes
+    private bool _sawFrame;                        // arm the stall watchdog only after real traffic
+
+    // Remembered so the RX thread can re-run the exact same init on an auto-reconnect.
+    private CanDeviceInfo _device = null!; // always assigned in Connect before any use
+    private CanBitRate _bitRate;
+    private bool _listenOnly;
 
     public event Action<CanFrame>? FrameReceived;
     public event Action<string>? BusError;
@@ -52,6 +72,14 @@ public sealed class ObdxCanAdapter : ICanAdapter
         return list;
     }
 
+    /// <summary>Restrict RX to the given IDs (applied at the next <see cref="Connect"/>); empty = all.</summary>
+    public void SetAcceptanceFilter(IReadOnlyCollection<CanAcceptId> ids)
+    {
+        if (IsConnected)
+            throw new InvalidOperationException("Set the acceptance filter before Connect.");
+        _acceptIds = ids ?? [];
+    }
+
     public void Connect(CanDeviceInfo device, CanBitRate bitRate, bool listenOnly = false)
     {
         if (IsConnected)
@@ -59,27 +87,15 @@ public sealed class ObdxCanAdapter : ICanAdapter
         if (device.Adapter != CanAdapterKind.Obdx)
             throw new ArgumentException($"Not an OBDX device: {device.Adapter}.", nameof(device));
 
-        byte baudCode = ObdxDvi.BaudCode(bitRate); // throws early on an unsupported rate
-        _transport = CreateTransport(device.Key);
+        ObdxDvi.BaudCode(bitRate); // throws early on an unsupported rate
+        _device = device;
+        _bitRate = bitRate;
+        _listenOnly = listenOnly;
+
         try
         {
-            _transport.Open();
-            Handshake();
-
-            // Send the config commands first (protocol, baud, filters, raw-mode flags), then
-            // confirm the tool didn't reject any before comms are enabled. The final command is
-            // the comms-enable, held back until the RX pump is running so no frame is missed.
-            var seq = ObdxDvi.RawCanInit(baudCode, listenOnly);
-            for (int i = 0; i < seq.Count - 1; i++)
-                WriteRaw(seq[i]);
-            VerifyInit(expectedAcks: seq.Count - 1, timeoutMs: 500);
-
-            _clock.Restart();
-            _running = true;
-            _rxThread = new Thread(ReceiveLoop) { IsBackground = true, Name = "Obdx-Rx" };
-            _rxThread.Start();
-
-            WriteRaw(seq[^1]); // enable comms — frames now flow to the RX pump
+            OpenAndInit(startRxThread: true);
+            _linkUp = true;
             IsConnected = true;
         }
         catch
@@ -87,6 +103,81 @@ public sealed class ObdxCanAdapter : ICanAdapter
             _running = false;
             SafeCloseTransport();
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Open the transport, run the ELM→DVI handshake and the config/filter sequence, then enable
+    /// comms. On the first connect (<paramref name="startRxThread"/> true) the RX pump is started
+    /// between the config acks and the comms-enable so no frame is missed; on an auto-reconnect it is
+    /// already running (this runs on it), so the whole sequence is sent inline.
+    /// </summary>
+    private void OpenAndInit(bool startRxThread)
+    {
+        var seq = ObdxDvi.RawCanInit(ObdxDvi.BaudCode(_bitRate), _listenOnly, ResolveFilterIds());
+        _transport = CreateTransport(_device.Key);
+        _transport.Open();
+        Handshake();
+
+        // Config commands first (protocol, baud, filters, raw-mode flags), then confirm none were
+        // rejected before comms are enabled.
+        for (int i = 0; i < seq.Count - 1; i++)
+            WriteRaw(seq[i]);
+        VerifyInit(expectedAcks: seq.Count - 1, timeoutMs: 500);
+
+        if (startRxThread)
+        {
+            _clock.Restart();
+            _running = true;
+            _rxThread = new Thread(ReceiveLoop) { IsBackground = true, Name = "Obdx-Rx" };
+            _rxThread.Start();
+        }
+
+        _lastRxTick = Environment.TickCount;
+        WriteRaw(seq[^1]); // enable comms — frames now flow
+    }
+
+    /// <summary>Choose exact-match filters when the count fits the tool's slots, else monitor all.</summary>
+    private IReadOnlyCollection<CanAcceptId>? ResolveFilterIds()
+    {
+        if (_acceptIds.Count == 0)
+            return null;
+        if (_acceptIds.Count > MaxAcceptanceFilters)
+        {
+            BusError?.Invoke($"OBDX: {_acceptIds.Count} filter IDs exceed {MaxAcceptanceFilters} slots — receiving all");
+            return null;
+        }
+        return _acceptIds;
+    }
+
+    /// <summary>
+    /// Re-establish a dropped/stalled link from the RX thread: mark the link down (TX is dropped
+    /// meanwhile), close the old transport, then reopen + re-init with bounded backoff until it
+    /// succeeds or the adapter is disconnected. Recovers a WiFi blip without a manual restart; a tool
+    /// that is genuinely wedged (needs a power cycle) simply keeps failing here until it comes back.
+    /// </summary>
+    private void Reconnect()
+    {
+        _linkUp = false;
+        _sawFrame = false;
+        int backoff = ReconnectMinBackoffMs;
+        while (_running)
+        {
+            SafeCloseTransport();
+            if (!RunningSleep(backoff))
+                return;
+            try
+            {
+                OpenAndInit(startRxThread: false);
+                _linkUp = true;
+                BusError?.Invoke("OBDX link re-established");
+                return;
+            }
+            catch (Exception ex)
+            {
+                BusError?.Invoke($"OBDX reconnect failed ({ex.Message}); retrying in {backoff} ms");
+                backoff = Math.Min(backoff * 2, ReconnectMaxBackoffMs);
+            }
         }
     }
 
@@ -184,21 +275,41 @@ public sealed class ObdxCanAdapter : ICanAdapter
     {
         var parser = new ObdxFrameParser();
         var buf = new byte[2048];
-        try
+        _lastRxTick = Environment.TickCount;
+
+        while (_running)
         {
-            while (_running)
+            int n;
+            try
             {
-                int n = _transport!.Read(buf);
-                if (n <= 0)
-                    continue; // idle read timeout — loop to re-check _running
+                n = _transport!.Read(buf); // 0 = idle timeout; throws on a real link failure
+            }
+            catch (Exception ex) when (_running)
+            {
+                BusError?.Invoke("OBDX link lost: " + ex.Message + " — reconnecting");
+                parser = new ObdxFrameParser(); // drop any partial frame across the gap
+                Reconnect();
+                continue;
+            }
+            catch { break; } // shutting down
+
+            if (n > 0)
+            {
+                _lastRxTick = Environment.TickCount;
+                _sawFrame = true;
                 parser.Append(buf.AsSpan(0, n));
                 while (parser.TryRead(out DviMessage msg))
                     Dispatch(msg);
             }
-        }
-        catch (Exception ex) when (_running)
-        {
-            BusError?.Invoke("OBDX RX stopped: " + ex.Message);
+            else if (_sawFrame && Environment.TickCount - _lastRxTick > StallTimeoutMs)
+            {
+                // Socket alive but the tool stopped streaming (wedged under load / interference) —
+                // the read timeout alone can't tell this from a truly idle bus, so we only trip once
+                // real traffic has been seen. Force a reconnect to shake it loose.
+                BusError?.Invoke($"OBDX stalled ({StallTimeoutMs} ms with no data) — reconnecting");
+                parser = new ObdxFrameParser();
+                Reconnect();
+            }
         }
     }
 
@@ -227,12 +338,25 @@ public sealed class ObdxCanAdapter : ICanAdapter
 
     public void Send(uint identifier, bool extended, byte[] data, bool remote = false)
     {
-        if (!IsConnected || _transport is null)
+        if (!IsConnected)
             throw new InvalidOperationException("Not connected.");
         if (data.Length > 8)
             throw new ArgumentException("Classic CAN allows at most 8 data bytes.", nameof(data));
 
-        WriteRaw(ObdxDvi.SendCanFrame(identifier, data));
+        // Drop TX while the link is down/reconnecting rather than throwing — the caller (feeder) is a
+        // periodic producer and will resend on its next tick; a mid-reconnect write would race the
+        // transport swap. A write that fails because the link just dropped is swallowed for the same
+        // reason (the RX loop will detect it and reconnect).
+        if (!_linkUp)
+            return;
+        try
+        {
+            WriteRaw(ObdxDvi.SendCanFrame(identifier, data));
+        }
+        catch when (!_linkUp)
+        {
+            return;
+        }
 
         // OBDX gives no self-reception, so mirror the TX into the trace like the VCI path does.
         FrameReceived?.Invoke(new CanFrame
@@ -301,10 +425,13 @@ public sealed class ObdxCanAdapter : ICanAdapter
     public void Disconnect()
     {
         _running = false;
+        _linkUp = false;
         StopAllCyclic();
 
+        // Give the RX thread time to fall out of a read or a reconnect backoff (it sleeps in short
+        // interruptible chunks, so this joins promptly even mid-reconnect).
         if (_rxThread is { } t && t.IsAlive && t != Thread.CurrentThread)
-            t.Join(TimeSpan.FromSeconds(2));
+            t.Join(TimeSpan.FromSeconds(ReconnectMaxBackoffMs / 1000.0 + 2));
         _rxThread = null;
 
         if (_transport is not null && IsConnected)
@@ -316,10 +443,26 @@ public sealed class ObdxCanAdapter : ICanAdapter
         IsConnected = false;
     }
 
+    /// <summary>Sleep in short chunks so a Disconnect during reconnect backoff is honoured quickly.
+    /// Returns false if the adapter was stopped while waiting.</summary>
+    private bool RunningSleep(int ms)
+    {
+        for (int slept = 0; slept < ms; slept += 200)
+        {
+            if (!_running)
+                return false;
+            Thread.Sleep(Math.Min(200, ms - slept));
+        }
+        return _running;
+    }
+
     private void SafeCloseTransport()
     {
-        try { _transport?.Dispose(); } catch { /* best effort */ }
-        _transport = null;
+        lock (_writeLock) // serialise with WriteRaw so we never dispose mid-write
+        {
+            try { _transport?.Dispose(); } catch { /* best effort */ }
+            _transport = null;
+        }
     }
 
     public void Dispose() => Disconnect();

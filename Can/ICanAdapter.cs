@@ -31,3 +31,18 @@ public interface ICanAdapter : IDisposable
 
     void StopAllCyclic();
 }
+
+/// <summary>One CAN acceptance-filter entry: an exact ID and its frame width (11- vs 29-bit).</summary>
+public readonly record struct CanAcceptId(uint Id, bool Extended);
+
+/// <summary>
+/// Optional adapter capability: restrict which CAN IDs are delivered, so a bandwidth-limited link
+/// (e.g. OBDX over WiFi) isn't flooded with the whole bus. Call <see cref="SetAcceptanceFilter"/>
+/// BEFORE <see cref="ICanAdapter.Connect"/>; an empty set means "receive everything" (the default).
+/// Adapters that can't hardware-filter simply don't implement this and keep receiving all frames.
+/// </summary>
+public interface ICanAcceptanceFilter
+{
+    /// <summary>Set the exact IDs to accept (applied at the next Connect). Empty/null = accept all.</summary>
+    void SetAcceptanceFilter(IReadOnlyCollection<CanAcceptId> ids);
+}

@@ -40,6 +40,32 @@ public sealed class FeederConfig
     /// IP for a remote server. Previously this field was ignored - it is now honoured.</summary>
     public string ServerAddress { get; set; } = "";
 
+    /// <summary>
+    /// ECU presence-heartbeat period, in milliseconds. The feeder emits a DEVICE_STATUS packet from
+    /// eDeviceId.ECU_INTERFACE at this rate so DigitalDyno keeps the "Device ECU" module present even
+    /// when the source CAN bus is quiet (engine off / wideband not broadcasting) — decoupled from the
+    /// actual signal data, which is still forwarded only when real frames arrive. Must be safely below
+    /// the dyno's ~5 s comms watchdog. 0 disables it (legacy behaviour: ECU present only while data flows).
+    /// </summary>
+    public int HeartbeatMs { get; set; } = 1000;
+
+    /// <summary>
+    /// Fallback: if the dyno's ECU comms watchdog turns out to require channel DATA_VALUE traffic
+    /// (not just DEVICE_STATUS), set true so the heartbeat ALSO re-sends each route's last-known raw
+    /// value. Default false = presence-only, so no stale readings are ever re-transmitted.
+    /// </summary>
+    public bool HeartbeatResendChannels { get; set; }
+
+    /// <summary>
+    /// Restrict the CAN adapter to only the message IDs that carry routed signals (the IDs the dyno
+    /// actually shows), instead of listening promiscuously to the whole bus. Prevents a bandwidth-
+    /// limited link (e.g. OBDX over WiFi) from overloading its buffer. Only adapters that support
+    /// hardware acceptance filtering honour it (OBDX); others receive everything regardless. Default
+    /// on; if no routed IDs resolve from the DBC, the filter is skipped (receive all) so you never
+    /// silently get nothing.
+    /// </summary>
+    public bool FilterToRoutes { get; set; } = true;
+
     public List<SignalRoute> Routes { get; set; } = new();
 
     public CanAdapterKind AdapterKind =>

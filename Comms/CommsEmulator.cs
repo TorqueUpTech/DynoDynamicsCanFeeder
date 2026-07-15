@@ -52,8 +52,10 @@ public sealed class CommsEmulator : IDisposable
 
     public void Start()
     {
-        var addr = ResolveServerAddress(_cfg.ServerAddress);
-        Status?.Invoke($"[server] target {addr}");
+        // Hardcoded to 127.0.0.1 — same as the ECU feeder: DynoServer is local/loopback-bound and
+        // broadcast discovery was leaking out the OBDX WiFi interface. (cfg.ServerAddress is ignored.)
+        var addr = IPAddress.Loopback;
+        Status?.Invoke($"[server] target {addr} (hardcoded loopback)");
         _clock.Restart();
 
         _serverThread = new Thread(() => _conn.ConnectAndRunWithRetries(addr, this))
@@ -128,19 +130,6 @@ public sealed class CommsEmulator : IDisposable
         if (Enum.TryParse(name, ignoreCase: true, out dev)) return true;
         Status?.Invoke($"[comms] unknown device id '{name}' — skipped");
         return false;
-    }
-
-    private static IPAddress ResolveServerAddress(string? configured)
-    {
-        var s = configured?.Trim();
-        if (string.IsNullOrEmpty(s) ||
-            s!.Equals("broadcast", StringComparison.OrdinalIgnoreCase) ||
-            s.Equals("any", StringComparison.OrdinalIgnoreCase))
-            return IPAddress.Broadcast;
-        if (s.Equals("loopback", StringComparison.OrdinalIgnoreCase) ||
-            s.Equals("localhost", StringComparison.OrdinalIgnoreCase))
-            return IPAddress.Loopback;
-        return IPAddress.TryParse(s, out var ip) ? ip : IPAddress.Broadcast;
     }
 
     public void Stop()
