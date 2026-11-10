@@ -9,8 +9,13 @@ obj/
 packages/
 *.nupkg
 
-# Dyno Dynamics assemblies (DynoDotNet/Lib_ECU/Lib_CAN) live in libs\ and ARE committed here
-# (PRIVATE repo). They are Dyno Dynamics' proprietary IP - do not make this repo public with them.
+# Dyno Dynamics assemblies (DynoDotNet/Lib_ECU/Lib_CAN): proprietary IP, never commit them.
+# Copy them into libs\ from a DigitalDyno install to build (see libs/README.md).
+libs/*.dll
+
+# Local, machine-specific configs
+comms.config.json
+gm-ecu.config.json
 
 # Vendor DBC intentionally excluded from this repo (supply your own).
 ECM_HS.dbc
